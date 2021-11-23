@@ -6,23 +6,23 @@ import { getFactory } from "./utils"
 /**
  * Factories
  */
-import { UniswapV2Factory__factory as factoryMeta } from "../../../uniswap-v2-core/typechain/factories/UniswapV2Factory__factory"
-import { UniswapV2Pair__factory as pairMeta } from "../../../uniswap-v2-core/typechain/factories/UniswapV2Pair__factory"
-import { UniswapV2Router02__factory as routerMeta } from "../../../uniswap-v2-periphery/typechain/factories/UniswapV2Router02__factory"
-import { ERC20__factory as erc20Meta } from "../../../uniswap-v2-core/typechain/factories/ERC20__factory"
-import { WETH9__factory as wethMeta } from "../../../uniswap-v2-periphery/typechain/factories/WETH9__factory"
+import { UniswapV2Factory__factory as factoryMeta } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/factories/UniswapV2Factory__factory"
+import { UniswapV2Pair__factory as pairMeta } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/factories/UniswapV2Pair__factory"
+import { UniswapV2Router02__factory as routerMeta } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/factories/UniswapV2Router02__factory"
+import { ERC20__factory as erc20Meta } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/factories/ERC20__factory"
+import { WETH9__factory as wethMeta } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/factories/WETH9__factory"
 
 /**
  * Contracts
  */
-import { UniswapV2Factory } from "../../../uniswap-v2-core/typechain/UniswapV2Factory"
-import { UniswapV2Pair } from "../../../uniswap-v2-core/typechain/UniswapV2Pair"
-import { ERC20 } from "../../../uniswap-v2-core/typechain/ERC20"
+import { UniswapV2Factory } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/UniswapV2Factory"
+import { UniswapV2Pair } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/UniswapV2Pair"
+import { ERC20 } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/ERC20"
 
-import { UniswapV2Router02 } from "../../../uniswap-v2-periphery/typechain/UniswapV2Router02"
-import { WETH9 } from "../../../uniswap-v2-periphery/typechain/WETH9"
+import { UniswapV2Router02 } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/UniswapV2Router02"
+import { WETH9 } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/WETH9"
 
-import { BigBanger } from "../../../farms/typechain/BigBanger"
+import { BigBanger } from "../../graviton-farms-evm/typechain/BigBanger"
 
 import { CandyShop } from "../../typechain/CandyShop"
 import { Can } from "../../typechain/Can"
@@ -89,7 +89,6 @@ export const poolFixture: Fixture<PoolFixture> = async function ([
 interface CandyShopFixture extends PoolFixture {
   farm: BigBanger;
   candy: CandyShop
-  canToken: Can
 }
 
 export const candyShopFixture: Fixture<CandyShopFixture> = async function (

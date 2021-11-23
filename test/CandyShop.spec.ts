@@ -1,15 +1,15 @@
 import { ethers, waffle } from "hardhat"
 import { BigNumber } from "ethers"
-import { UniswapV2Factory } from "../../uniswap-v2-core/typechain/UniswapV2Factory"
-import { UniswapV2Pair } from "../../uniswap-v2-core/typechain/UniswapV2Pair"
-import { ERC20 } from "../../uniswap-v2-core/typechain/ERC20"
-import { UniswapV2Router02 } from "../../uniswap-v2-periphery/typechain/UniswapV2Router02"
-import { WETH9 } from "../../uniswap-v2-periphery/typechain/WETH9"
+import { UniswapV2Factory } from "../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/UniswapV2Factory"
+import { UniswapV2Pair } from "../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/UniswapV2Pair"
+import { ERC20 } from "../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/ERC20"
+import { UniswapV2Router02 } from "../graviton-farms-evm/graviton-periphery-evm/typechain/UniswapV2Router02"
+import { WETH9 } from "../graviton-farms-evm/graviton-periphery-evm/typechain/WETH9"
 import { CandyShop } from "../typechain/CandyShop"
 import { Can } from "../typechain/Can"
 import { poolFixture } from "./shared/fixtures"
 
-import { expect } from "../../../test/shared/expect"
+import { expect } from "./shared/expect"
 
 describe("CandyShop", () => {
   const [wallet, other, nebula] = waffle.provider.getWallets()
