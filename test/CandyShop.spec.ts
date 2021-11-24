@@ -64,6 +64,10 @@ describe("CandyShop", () => {
 
   it("can creation", async () => {
     const farmId: BigNumber = await setupFarm(farm, 100, lpToken.address)
+    // check revert modifier
+    await candy.toggleRevert()
+    await expect(candy.createCan(farmId, farm.address, router.address, lpToken.address, token0.address, relict.address, 0)).to.be.revertedWith('CandyShop: Option is closed to use')
+    await candy.toggleRevert()
     // check ownership
     await expect(candy.connect(other).createCan(farmId, farm.address, router.address, lpToken.address, token0.address, relict.address, 0)).to.be.revertedWith('CandyShop: permitted to owner')
     
@@ -82,10 +86,16 @@ describe("CandyShop", () => {
   it("transfer ownership", async () => {
     await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
     await candy.transferOwnership(other.address)
-    await expect(candy.owner()).to.eq(other.address)
+    expect(await candy.owner()).to.eq(other.address)
   })
 
   it("emergency takeout", async () => {
-
+    const amount = BigNumber.from(15000000000000)
+    token0.transfer(candy.address, amount)
+    await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
+    await candy.emergencyTakeout(token0.address, other.address, amount)
+    expect(await token0.balanceOf(other.address)).to.eq(amount)
+    expect(await token0.balanceOf(candy.address)).to.eq(0)
+    await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
   })
 })
