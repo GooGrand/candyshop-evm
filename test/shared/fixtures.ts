@@ -11,6 +11,8 @@ import { UniswapV2Pair__factory as pairMeta } from "../../graviton-farms-evm/gra
 import { UniswapV2Router02__factory as routerMeta } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/factories/UniswapV2Router02__factory"
 import { ERC20__factory as erc20Meta } from "../../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/factories/ERC20__factory"
 import { WETH9__factory as wethMeta } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/factories/WETH9__factory"
+import { BigBanger__factory as bangerMeta } from "../../graviton-farms-evm/typechain/factories/BigBanger__factory"
+import { RelictGtonToken__factory as relictMeta } from "../../graviton-farms-evm/typechain/factories/RelictGtonToken__factory"
 
 /**
  * Contracts
@@ -23,9 +25,9 @@ import { UniswapV2Router02 } from "../../graviton-farms-evm/graviton-periphery-e
 import { WETH9 } from "../../graviton-farms-evm/graviton-periphery-evm/typechain/WETH9"
 
 import { BigBanger } from "../../graviton-farms-evm/typechain/BigBanger"
+import { RelictGtonToken } from "../../graviton-farms-evm/typechain/RelictGtonToken"
 
 import { CandyShop } from "../../typechain/CandyShop"
-import { Can } from "../../typechain/Can"
 
 interface TokensFixture {
   weth: WETH9
@@ -87,6 +89,7 @@ export const poolFixture: Fixture<PoolFixture> = async function ([
 }
 
 interface CandyShopFixture extends PoolFixture {
+  relict: RelictGtonToken
   farm: BigBanger;
   candy: CandyShop
 }
@@ -97,7 +100,20 @@ export const candyShopFixture: Fixture<CandyShopFixture> = async function (
 ): Promise<CandyShopFixture> {
   const { weth, token0, token1, token2, factory, router, lpToken } =
     await poolFixture([wallet], provider)
-
+  const relictFactory = await getFactory(relictMeta)
+  const relict = (await relictFactory.deploy()) as RelictGtonToken
+  const bangerFactory = await getFactory(bangerMeta)
+  const fantomRelictPerBlock = "87839379420488256"
+  const currentBlock = await provider.getBlockNumber()
+  const farm = (await bangerFactory.deploy(
+    relict.address,
+    wallet.address,
+    fantomRelictPerBlock,
+    currentBlock,
+    currentBlock + 10000
+  )) as BigBanger
+  const candyFactory = await ethers.getContractFactory("CandyShop")
+  const candy = (await candyFactory.deploy(wallet.address)) as CandyShop
   return {
     weth,
     token0,
@@ -105,6 +121,9 @@ export const candyShopFixture: Fixture<CandyShopFixture> = async function (
     token2,
     factory,
     router,
+    relict,
+    farm,
     lpToken,
+    candy
   }
 }
