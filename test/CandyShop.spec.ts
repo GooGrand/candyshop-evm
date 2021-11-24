@@ -1,19 +1,17 @@
-import { ethers, waffle } from "hardhat"
+import { waffle } from "hardhat"
 import { UniswapV2Factory } from "../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/UniswapV2Factory"
 import { UniswapV2Pair } from "../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/UniswapV2Pair"
 import { ERC20 } from "../graviton-farms-evm/graviton-periphery-evm/graviton-core-evm/typechain/ERC20"
 import { UniswapV2Router02 } from "../graviton-farms-evm/graviton-periphery-evm/typechain/UniswapV2Router02"
 import { WETH9 } from "../graviton-farms-evm/graviton-periphery-evm/typechain/WETH9"
 import { CandyShop } from "../typechain/CandyShop"
-import { Can } from "../typechain/Can"
 import { candyShopFixture } from "./shared/fixtures"
 
 import { expect } from "./shared/expect"
 import { RelictGtonToken } from "~/graviton-farms-evm/typechain/RelictGtonToken"
 import { BigBanger } from "~/graviton-farms-evm/typechain/BigBanger"
 
-import { Contract, BigNumber, constants, utils } from 'ethers'
-// const { AddressZero, Zero, MaxUint256 }  = constants
+import { BigNumber, utils } from 'ethers'
 describe("CandyShop", () => {
   const [wallet, other, nebula] = waffle.provider.getWallets()
 
@@ -48,11 +46,7 @@ describe("CandyShop", () => {
       candy
     } = await loadFixture(candyShopFixture))
   })
-  async function addLiquidity(token0Amount: BigNumber, token1Amount: BigNumber) {
-    await token0.transfer(lpToken.address, token0Amount)
-    await token1.transfer(lpToken.address, token1Amount)
-    await lpToken.mint(wallet.address)
-  }
+
   async function setupFarm(farm: BigBanger, allocPoints: number, lpTokenAddress: string) {
     await farm.add(allocPoints, lpTokenAddress, true)
     return await (await farm.poolLength()).sub(1);
