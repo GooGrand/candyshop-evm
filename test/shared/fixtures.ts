@@ -112,6 +112,7 @@ export const candyShopFixture: Fixture<CandyShopFixture> = async function (
     currentBlock,
     currentBlock + 10000
   )) as BigBanger
+  await relict.transferOwnership(farm.address)
   const candyFactory = await ethers.getContractFactory("CandyShop")
   const candy = (await candyFactory.deploy(wallet.address)) as CandyShop
   return {

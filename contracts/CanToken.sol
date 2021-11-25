@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/ICan.sol";
-
+import "hardhat/console.sol";
 // interface IERC20 {
 //     function mint(address _to, uint256 _value) external;
 
@@ -273,7 +273,7 @@ contract Can is ICan {
     }
     
     function updateCan() public override notReverted {
-        CanData storage canData = canInfo;
+        CanData storage canData = canInfo; // what is the reason
         uint pendingAmount = canData.farm.pendingRelict(canData.farmId,address(this));
         canData.farm.withdraw(canData.farmId,0);
         if(canData.totalProvidedTokenAmount > 0) {
@@ -287,7 +287,6 @@ contract Can is ICan {
         UserTokenData storage userTokenData = usersInfo[_user];
         CanData storage canData = canInfo;
         updateCan();
-        
         // get second token amount for liquidity
         address firstToken = canData.lpToken.token0();
         address secondToken = canData.lpToken.token1();
@@ -322,10 +321,11 @@ contract Can is ICan {
             address(this),
             block.timestamp + 10000
         );
+
         // send lp tokens to farming
         require(IERC20(address(canData.lpToken)).approve(address(canData.farm),lpAmount),"CanToken: Approve lp error"); 
         canData.farm.deposit(canData.farmId,lpAmount);
-    
+
         // previous pending reward goes to aggregated reward
         userTokenData.aggregatedReward = lpAmount * canData.accRewardPerShare / 1e12 - userTokenData.rewardDebt;
         // incrementing provided and lp amount
