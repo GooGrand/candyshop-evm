@@ -2,7 +2,6 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/ICan.sol";
-import "hardhat/console.sol";
 // interface IERC20 {
 //     function mint(address _to, uint256 _value) external;
 
@@ -207,9 +206,6 @@ contract Can is ICan {
     bool public revertFlag;
     address public owner;
     address public feeReceiver;  
-    
-    CanData public canInfo;
-    mapping (address => UserTokenData) public usersInfo;
 
     constructor(
         address _owner,
@@ -235,7 +231,7 @@ contract Can is ICan {
     }
     
     modifier onlyOwner() {
-        require(msg.sender==owner,'CanToken: permitted to owner');
+        require(msg.sender==owner,'CanToken: permitted to owner only');
         _;
     }
     
@@ -257,7 +253,7 @@ contract Can is ICan {
     }
     
     function emergencySendToFarming(uint _amount) public override onlyOwner {
-        require(canInfo.lpToken.approve(address(canInfo.farm),_amount),"CanToken: Not enough of approved token");
+        require(canInfo.lpToken.approve(address(canInfo.farm),_amount),"CanToken: Insufficent approve");
         canInfo.farm.deposit(canInfo.farmId,_amount);
     }
     
@@ -268,12 +264,15 @@ contract Can is ICan {
         canData.accRewardPerShare += pendingAmount * 1e12 / canData.totalProvidedTokenAmount;
     }
     
+    CanData public canInfo;
+    mapping (address => UserTokenData) public usersInfo;
+    
     function changeCanFee(uint _fee) public override onlyOwner {
         canInfo.fee = _fee;
     }
     
     function updateCan() public override notReverted {
-        CanData storage canData = canInfo; // what is the reason
+        CanData storage canData = canInfo;
         uint pendingAmount = canData.farm.pendingRelict(canData.farmId,address(this));
         canData.farm.withdraw(canData.farmId,0);
         if(canData.totalProvidedTokenAmount > 0) {
@@ -287,6 +286,7 @@ contract Can is ICan {
         UserTokenData storage userTokenData = usersInfo[_user];
         CanData storage canData = canInfo;
         updateCan();
+        
         // get second token amount for liquidity
         address firstToken = canData.lpToken.token0();
         address secondToken = canData.lpToken.token1();
@@ -304,10 +304,10 @@ contract Can is ICan {
         }
         uint secondTokenAmount = canData.router.quote(_providedAmount,reserveFirst,reserveSecond);
         // approve tokens for liquidity
-        require(IERC20(firstToken).transferFrom(_user,address(this),_providedAmount),"CanToken: Not enough of approved token");
+        require(IERC20(firstToken).transferFrom(msg.sender,address(this),_providedAmount),"CanToken: error transfer from");
         
-        require(IERC20(firstToken).approve(address(canData.router),_providedAmount),"CanToken: Approve t0 error");
-        require(IERC20(secondToken).approve(address(canData.router),secondTokenAmount),"CanToken: Approve t1 error");
+        require(IERC20(firstToken).approve(address(canData.router),_providedAmount),"CanToken: Insufficent approve t0");
+        require(IERC20(secondToken).approve(address(canData.router),secondTokenAmount),"CanToken: Insufficent approve t1");
         
         uint providingAmount = _providedAmount;
         // send liquidity and get lp amount
@@ -321,11 +321,10 @@ contract Can is ICan {
             address(this),
             block.timestamp + 10000
         );
-
         // send lp tokens to farming
-        require(IERC20(address(canData.lpToken)).approve(address(canData.farm),lpAmount),"CanToken: Approve lp error"); 
+        require(IERC20(address(canData.lpToken)).approve(address(canData.farm),lpAmount),"CanToken: Insufficent approve lp"); 
         canData.farm.deposit(canData.farmId,lpAmount);
-
+    
         // previous pending reward goes to aggregated reward
         userTokenData.aggregatedReward = lpAmount * canData.accRewardPerShare / 1e12 - userTokenData.rewardDebt;
         // incrementing provided and lp amount
@@ -341,7 +340,7 @@ contract Can is ICan {
     // creates some can tokens for user in declared stack
     function burnFor(address _user, uint _providedAmount, uint _rewardAmount) public override notReverted {
         // getting user and stack info from mappings
-        UserTokenData storage userTokenData = usersInfo[_user];
+        UserTokenData storage userTokenData = usersInfo[msg.sender];
         CanData storage canData = canInfo;
         updateCan();
         
@@ -366,19 +365,17 @@ contract Can is ICan {
         // aggregate rewards  and transfer
         userTokenData.aggregatedReward += userTokenData.farmingAmount * canData.accRewardPerShare / 1e12 - userTokenData.rewardDebt;
         require(_rewardAmount <= userTokenData.aggregatedReward, "CanToken: Insufficent reward amount");
-        require(canData.rewardToken.transfer(_user,(_rewardAmount - canData.fee)),'CanToken: Error transfering reward');
+        require(canData.rewardToken.transfer(_user,(_rewardAmount - canData.fee)),'CanToken: Reward transfer error');
         // transfer fee 
-        require(canData.rewardToken.transfer(feeReceiver,canData.fee),'CanToken: Unable to transfer fee');
+        require(canData.rewardToken.transfer(feeReceiver,canData.fee),'CanToken: Fee transfer error');
         userTokenData.aggregatedReward -= _rewardAmount;
         canData.totalRewardsClaimed += _rewardAmount;
         // prevent stack too deep
         uint providingAmount = _providedAmount;
-        address user = _user;
             
          if(_providedAmount > 0) {
        
             uint lpAmountToTakeFromPool = _providedAmount * canData.lpToken.totalSupply() / reserveFirst;
-        
             canData.farm.withdraw(canData.farmId, lpAmountToTakeFromPool);
             require(canData.lpToken.approve(address(canData.router), lpAmountToTakeFromPool), "CanToken: Cannot approve to withdraw");
             (uint amountFirst,) = canData.router.removeLiquidity(
@@ -391,11 +388,11 @@ contract Can is ICan {
             block.timestamp + 10000
             );
             
-            require(IERC20(address(canData.providingToken)).transfer(user,amountFirst),'CanToken: Transfer provided amount error');
-
-            userTokenData.providedAmount -= _providedAmount;
+            require(IERC20(address(canData.providingToken)).transfer(_user,amountFirst),'CanToken: Error transfering provided token');
+            // better update farming before prov amount
             userTokenData.farmingAmount = (userTokenData.providedAmount - _providedAmount) * canData.lpToken.totalSupply() / reserveFirst;
-        
+            userTokenData.providedAmount -= _providedAmount;
+
             canData.totalProvidedTokenAmount -= _providedAmount;
             canData.totalFarmingTokenAmount -= lpAmountToTakeFromPool;
          }
@@ -403,10 +400,9 @@ contract Can is ICan {
         userTokenData.rewardDebt = userTokenData.farmingAmount * canData.accRewardPerShare / 1e12;
     }
     
-    function transfer(address _from, address _to, uint _providingAmount, uint _rewardAmount) public override notReverted {
-        require(msg.sender == _from, 'CanToken: From address should be sender');
- 
-        UserTokenData storage from_data = usersInfo[_from];       
+    function transfer(address _to, uint _providingAmount, uint _rewardAmount) public override notReverted {
+        
+        UserTokenData storage from_data = usersInfo[msg.sender];       
         UserTokenData storage to_data = usersInfo[_to];
         CanData storage canData = canInfo;
         updateCan();
@@ -434,4 +430,3 @@ contract Can is ICan {
     }
     
 }
-
