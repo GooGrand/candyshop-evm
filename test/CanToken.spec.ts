@@ -100,25 +100,25 @@ describe("CanToken", () => {
         await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
     })
 
-    it("emergency send to farming", async () => {
-        const amount = BigNumber.from(15000000000000)
-        token0.transfer(candy.address, amount)
-        await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
-        await candy.emergencyTakeout(token0.address, other.address, amount)
-        expect(await token0.balanceOf(other.address)).to.eq(amount)
-        expect(await token0.balanceOf(candy.address)).to.eq(0)
-        await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
-    })
+    // it("emergency send to farming", async () => {
+    //     const amount = BigNumber.from(15000000000000)
+    //     token0.transfer(candy.address, amount)
+    //     await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
+    //     await candy.emergencyTakeout(token0.address, other.address, amount)
+    //     expect(await token0.balanceOf(other.address)).to.eq(amount)
+    //     expect(await token0.balanceOf(candy.address)).to.eq(0)
+    //     await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
+    // })
 
-    it("emergency get from farming", async () => {
-        const amount = BigNumber.from(15000000000000)
-        token0.transfer(candy.address, amount)
-        await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
-        await candy.emergencyTakeout(token0.address, other.address, amount)
-        expect(await token0.balanceOf(other.address)).to.eq(amount)
-        expect(await token0.balanceOf(candy.address)).to.eq(0)
-        await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
-    })
+    // it("emergency get from farming", async () => {
+    //     const amount = BigNumber.from(15000000000000)
+    //     token0.transfer(candy.address, amount)
+    //     await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
+    //     await candy.emergencyTakeout(token0.address, other.address, amount)
+    //     expect(await token0.balanceOf(other.address)).to.eq(amount)
+    //     expect(await token0.balanceOf(candy.address)).to.eq(0)
+    //     await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
+    // })
 
     //   it("updateCan", async () => {
 
