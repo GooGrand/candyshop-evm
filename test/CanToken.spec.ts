@@ -85,44 +85,44 @@ describe("CanToken", () => {
     })
 
     it("transfer ownership", async () => {
-        await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
-        await candy.transferOwnership(other.address)
-        expect(await candy.owner()).to.eq(other.address)
+        await expect(can.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CanToken: permitted to owner only')
+        await can.transferOwnership(other.address)
+        expect(await can.owner()).to.eq(other.address)
     })
 
     it("emergency takeout", async () => {
         const amount = BigNumber.from(15000000000000)
-        token0.transfer(candy.address, amount)
-        await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
-        await candy.emergencyTakeout(token0.address, other.address, amount)
+        token0.transfer(can.address, amount)
+        await expect(can.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CanToken: permitted to owner only')
+        await can.emergencyTakeout(token0.address, other.address, amount)
         expect(await token0.balanceOf(other.address)).to.eq(amount)
-        expect(await token0.balanceOf(candy.address)).to.eq(0)
-        await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
+        expect(await token0.balanceOf(can.address)).to.eq(0)
+        await expect(can.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
+    })
+    const lpAmount = expandTo18Decimals(100)
+    async function sendToFarming() {
+        await addLiquidity(lpAmount, lpAmount)
+        const balance = await lpToken.balanceOf(wallet.address)
+        await expect(can.connect(other).emergencySendToFarming(balance)).to.be.revertedWith("CanToken: permitted to admins only")
+        await expect(can.emergencySendToFarming(balance)).to.be.reverted
+        await lpToken.transfer(can.address, balance)
+        await can.emergencySendToFarming(balance)
+        expect((await farm.userInfo(0, can.address)).amount).to.eq(balance)
+        return balance
+    }
+    it("emergency send to farming", async () => {
+        await sendToFarming()
     })
 
-    // it("emergency send to farming", async () => {
-    //     const amount = BigNumber.from(15000000000000)
-    //     token0.transfer(candy.address, amount)
-    //     await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
-    //     await candy.emergencyTakeout(token0.address, other.address, amount)
-    //     expect(await token0.balanceOf(other.address)).to.eq(amount)
-    //     expect(await token0.balanceOf(candy.address)).to.eq(0)
-    //     await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
-    // })
+    it("emergency get from farming", async () => {
+        const balance = await sendToFarming()
+        await mint() // should be mint some tokens before use
+        await expect(can.connect(other).emergencyGetFromFarming(balance)).to.be.revertedWith("CanToken: permitted to admins only")
+        expect(await lpToken.balanceOf(can.address)).to.eq(0)
+        await can.emergencyGetFromFarming(balance)
+        expect(await lpToken.balanceOf(can.address)).to.eq(balance)
+    })
 
-    // it("emergency get from farming", async () => {
-    //     const amount = BigNumber.from(15000000000000)
-    //     token0.transfer(candy.address, amount)
-    //     await expect(candy.connect(other).transferOwnership(wallet.address)).to.be.revertedWith('CandyShop: permitted to owner')
-    //     await candy.emergencyTakeout(token0.address, other.address, amount)
-    //     expect(await token0.balanceOf(other.address)).to.eq(amount)
-    //     expect(await token0.balanceOf(candy.address)).to.eq(0)
-    //     await expect(candy.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
-    // })
-
-    //   it("updateCan", async () => {
-
-    //   })
     const initialLiquidity = expandTo18Decimals(100)
     const earned = BigNumber.from("1756787588400000000")
     const tokenAmount1 = expandTo18Decimals(10)
@@ -153,53 +153,6 @@ describe("CanToken", () => {
         expect(await relict.balanceOf(other.address)).to.eq(earned)
         expect(await token0.balanceOf(other.address)).to.eq(token0Balance.add(tokenAmount1))
     })
-
-    // async function getQuoteForPool(lpToken: UniswapV2Pair, router: UniswapV2Router02, providingToken: string, providedAmount: BigNumber): Promise<BigNumber> {
-    //     let firstToken = await lpToken.token0();
-    //     let secondToken = await lpToken.token1();
-    //     const { _reserve1, _reserve0 } = await lpToken.getReserves();
-    //     let reserveFirst;
-    //     let reserveSecond;
-    //     if (secondToken == providingToken) {
-    //         secondToken = firstToken;
-    //         firstToken = providingToken;
-    //         reserveFirst = _reserve1;
-    //         reserveSecond = _reserve0;
-    //     } else {
-    //         reserveFirst = _reserve0;
-    //         reserveSecond = _reserve1;
-    //     }
-    //     return router.quote(providedAmount, reserveFirst, reserveSecond);
-    // }
-
-    // it("mint: inbalanced", async () => {
-    //     const initialLiquidity1 = expandTo18Decimals(100)
-    //     const initialLiquidity2 = expandTo18Decimals(1000)
-    //     // in case of low liauidity throws UniswapV2Library: INSUFFICIENT_LIQUIDITY
-    //     await addLiquidity(initialLiquidity1, initialLiquidity2)
-
-    //     const tokenAmount1 = expandTo18Decimals(10)
-    //     const tokenAmount2 = expandTo18Decimals(145)
-    //     await token1.transfer(can.address, expandTo18Decimals(180000))
-    //     expect((await (await can.usersInfo(wallet.address)).providedAmount)).to.eq(0)
-
-    //     await token0.approve(can.address, tokenAmount1)
-    //     await can.mintFor(wallet.address, tokenAmount1)
-    //     expect((await (await can.usersInfo(wallet.address)).providedAmount)).to.eq(tokenAmount1)
-
-    //     await mineBlock(waffle.provider, (await waffle.provider.getBlock('latest')).timestamp + 1)
-    //     await can.updateCan()
-    //     // accumulated reward per share
-    //     expect((await can.canInfo()).accRewardPerShare).to.eq(175678758838)
-    //     // test with another user
-    //     await token0.transfer(other.address, tokenAmount2)
-    //     await token0.connect(other).approve(can.address, tokenAmount2)
-    //     await can.connect(other).mintFor(other.address, tokenAmount2)
-    //     expect((await can.canInfo()).totalProvidedTokenAmount).to.eq(tokenAmount1.add(tokenAmount2))
-    //     expect((await can.canInfo()).accRewardPerShare).to.eq(439196897098)
-    //     expect((await can.usersInfo(other.address)).providedAmount).to.eq(tokenAmount2)
-    //     expect((await can.usersInfo(other.address)).aggregatedReward).to.eq(201385067735700007069)
-    // })
 
     it("mint: balanced", async () => {
         const initialLiquidity = expandTo18Decimals(100)

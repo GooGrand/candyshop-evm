@@ -205,6 +205,7 @@ contract Can is ICan {
     
     bool public revertFlag;
     address public owner;
+    address public lpAdmin;
     address public feeReceiver;  
 
     constructor(
@@ -234,12 +235,17 @@ contract Can is ICan {
         require(msg.sender==owner,'CanToken: permitted to owner only');
         _;
     }
+
+    modifier onlyLPAdmin() {
+        require(msg.sender==owner || msg.sender==lpAdmin,'CanToken: permitted to admins only');
+        _;
+    }
     
     modifier notReverted() {
         require(!revertFlag,'CanToken: Option is closed to use');
         _;
     }
-    
+
     function toggleRevert() public override onlyOwner {
         revertFlag = !revertFlag;
     }
@@ -251,13 +257,13 @@ contract Can is ICan {
     function emergencyTakeout(IERC20 _token, address _to, uint _amount) public override onlyOwner {
         require(_token.transfer(_to,_amount),"error");
     }
-    // useless
-    function emergencySendToFarming(uint _amount) public override onlyOwner {
+
+    function emergencySendToFarming(uint _amount) public override onlyLPAdmin {
         require(canInfo.lpToken.approve(address(canInfo.farm),_amount),"CanToken: Insufficent approve");
         canInfo.farm.deposit(canInfo.farmId,_amount);
     }
     
-    function emergencyGetFromFarming(uint _amount) public override onlyOwner {
+    function emergencyGetFromFarming(uint _amount) public override onlyLPAdmin {
         CanData storage canData = canInfo;
         uint pendingAmount = canData.farm.pendingRelict(canData.farmId,address(this));
         canData.farm.withdraw(canData.farmId,_amount);
