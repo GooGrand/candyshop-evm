@@ -251,7 +251,7 @@ contract Can is ICan {
     function emergencyTakeout(IERC20 _token, address _to, uint _amount) public override onlyOwner {
         require(_token.transfer(_to,_amount),"error");
     }
-    
+    // useless
     function emergencySendToFarming(uint _amount) public override onlyOwner {
         require(canInfo.lpToken.approve(address(canInfo.farm),_amount),"CanToken: Insufficent approve");
         canInfo.farm.deposit(canInfo.farmId,_amount);
@@ -401,7 +401,7 @@ contract Can is ICan {
     }
     
     function transfer(address _to, uint _providingAmount, uint _rewardAmount) public override notReverted {
-        
+        // Should we add require(sender == _to, "cannot transfer to the same account")
         UserTokenData storage from_data = usersInfo[msg.sender];       
         UserTokenData storage to_data = usersInfo[_to];
         CanData storage canData = canInfo;

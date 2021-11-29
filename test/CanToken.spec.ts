@@ -123,19 +123,21 @@ describe("CanToken", () => {
     //   it("updateCan", async () => {
 
     //   })
+    const initialLiquidity = expandTo18Decimals(100)
+    const earned = BigNumber.from("1756787588400000000")
+    const tokenAmount1 = expandTo18Decimals(10)
 
-    it("burn: claim reward", async () => {
-        const initialLiquidity = expandTo18Decimals(100)
-        const earned = BigNumber.from("1756787588400000000")
+    async function mint() {
         // in case of low liauidity throws UniswapV2Library: INSUFFICIENT_LIQUIDITY
         await addLiquidity(initialLiquidity, initialLiquidity)
-
-        const tokenAmount1 = expandTo18Decimals(10)
         await token1.transfer(can.address, expandTo18Decimals(180000))
         await token0.approve(can.address, tokenAmount1)
         await can.mintFor(wallet.address, tokenAmount1)
         expect((await (await can.usersInfo(wallet.address)).providedAmount)).to.eq(tokenAmount1)
+    }
 
+    it("burn: claim reward", async () => {
+        await mint()
         await mineBlock(waffle.provider, (await waffle.provider.getBlock('latest')).timestamp + 1)
         await can.burnFor(other.address, 0, earned) // mint for someone because of dev wallet
         expect((await can.usersInfo(wallet.address)).aggregatedReward).to.eq(0)
@@ -143,18 +145,8 @@ describe("CanToken", () => {
     })
 
     it("burn: remove liquidity", async () => {
-        const initialLiquidity = expandTo18Decimals(100)
-        const earned = BigNumber.from("1756787588400000000")
-        // in case of low liauidity throws UniswapV2Library: INSUFFICIENT_LIQUIDITY
-        await addLiquidity(initialLiquidity, initialLiquidity)
-
-        const tokenAmount1 = expandTo18Decimals(10)
-        await token1.transfer(can.address, expandTo18Decimals(180000))
-        await token0.approve(can.address, tokenAmount1)
-        await can.mintFor(wallet.address, tokenAmount1)
+        await mint()
         const token0Balance = await token0.balanceOf(other.address)
-        expect((await can.usersInfo(wallet.address)).providedAmount).to.eq(tokenAmount1)
-        
         await mineBlock(waffle.provider, (await waffle.provider.getBlock('latest')).timestamp + 1)
         await can.burnFor(other.address, tokenAmount1, earned) // mint for someone because of dev wallet
         expect((await can.usersInfo(wallet.address)).aggregatedReward).to.eq(0)
@@ -242,6 +234,15 @@ describe("CanToken", () => {
     })
 
     it("transfer", async () => {
-
+        await mint()
+        await mineBlock(waffle.provider, (await waffle.provider.getBlock('latest')).timestamp + 1)
+        await expect(can.transfer(other.address, 0, earned.add(1))).to.be.reverted
+        await expect(can.transfer(other.address, tokenAmount1.add(1), 0)).to.be.reverted
+        await can.transfer(other.address, 0, earned)
+        expect((await can.usersInfo(other.address)).aggregatedReward).to.eq(earned)
+        await mineBlock(waffle.provider, (await waffle.provider.getBlock('latest')).timestamp + 1)
+        await can.transfer(other.address, tokenAmount1, earned)
+        expect((await can.usersInfo(other.address)).aggregatedReward).to.eq(earned.mul(2))
+        expect((await can.usersInfo(other.address)).providedAmount).to.eq(tokenAmount1)
     })
 })
