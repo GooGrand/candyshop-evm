@@ -289,7 +289,7 @@ contract Can is ICan {
     // creates some can tokens for user in declared stack
     function mintFor(address _user, uint _providedAmount) public override notReverted {
         // getting user and stack info from mappings
-        UserTokenData storage userTokenData = usersInfo[_user];
+        UserTokenData storage userTokenData = usersInfo[msg.sender];
         CanData storage canData = canInfo;
         updateCan();
         
