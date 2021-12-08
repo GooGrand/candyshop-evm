@@ -16,7 +16,7 @@ import { BigBanger } from "~/graviton-farms-evm/typechain/BigBanger"
 import { Contract, BigNumber, constants, utils } from 'ethers'
 // const { AddressZero, Zero, MaxUint256 }  = constants
 describe("CanToken", () => {
-    const [wallet, other, nebula] = waffle.provider.getWallets()
+    const [wallet, other, nebula, alice, bob] = waffle.provider.getWallets()
 
     let loadFixture: ReturnType<typeof waffle.createFixtureLoader>
 
@@ -35,6 +35,7 @@ describe("CanToken", () => {
     let farm: BigBanger
     let candy: CandyShop
     let can: Can
+    let lib: Contract
 
     let farmId: BigNumber
     const timestamp = 1637866629
@@ -49,20 +50,24 @@ describe("CanToken", () => {
             relict,
             farm,
             lpToken,
-            candy
+            candy,
+            lib
         } = await loadFixture(candyShopFixture))
 
         farmId = await setupFarm(farm, 100, lpToken.address)
         await candy.createCan(farmId, farm.address, router.address, lpToken.address, token0.address, relict.address, 0)
         const canAddress = await candy.allCans((await candy.canLength()).sub(1))
-        const canFactory = await ethers.getContractFactory("Can")
+        const canFactory = await ethers.getContractFactory("Can",{
+            libraries: {
+              AddressArrayLib: lib.address,
+            }})
         can = canFactory.attach(canAddress) as Can
     })
 
-    async function addLiquidity(token0Amount: BigNumber, token1Amount: BigNumber) {
+    async function addLiquidity(token0Amount: BigNumber, token1Amount: BigNumber, wallet_t: any = wallet) {
         await token0.transfer(lpToken.address, token0Amount)
         await token1.transfer(lpToken.address, token1Amount)
-        await lpToken.mint(wallet.address)
+        await lpToken.mint(wallet_t.address)
     }
 
     async function setupFarm(farm: BigBanger, allocPoints: number, lpTokenAddress: string) {
@@ -100,22 +105,30 @@ describe("CanToken", () => {
         await expect(can.emergencyTakeout(token0.address, other.address, amount.add(1))).to.be.reverted
     })
     const lpAmount = expandTo18Decimals(100)
-    async function sendToFarming() {
-        await addLiquidity(lpAmount, lpAmount)
+    async function sendToFarming(wallet: any) {
+        await addLiquidity(lpAmount, lpAmount, wallet)
         const balance = await lpToken.balanceOf(wallet.address)
         await expect(can.connect(other).emergencySendToFarming(balance)).to.be.revertedWith("CanToken: permitted to admins only")
-        await expect(can.emergencySendToFarming(balance)).to.be.reverted
-        await lpToken.transfer(can.address, balance)
-        await can.emergencySendToFarming(balance)
+        await expect(can.connect(wallet).emergencySendToFarming(balance)).to.be.reverted
+        await lpToken.connect(wallet).transfer(can.address, balance)
+        await can.connect(wallet).emergencySendToFarming(balance)
         expect((await farm.userInfo(0, can.address)).amount).to.eq(balance)
         return balance
     }
+
     it("emergency send to farming", async () => {
-        await sendToFarming()
+        await sendToFarming(wallet)
+    })
+
+    it("emergency send to farming: admin", async () => {
+        await can.setAdmins([alice.address, bob.address]);
+        await sendToFarming(alice)
+        await can.removeAdmins([alice.address])
+        await expect(can.connect(alice).emergencySendToFarming(expandTo18Decimals(1))).to.be.revertedWith("CanToken: permitted to admins only")
     })
 
     it("emergency get from farming", async () => {
-        const balance = await sendToFarming()
+        const balance = await sendToFarming(wallet)
         await mint() // should be mint some tokens before use
         await expect(can.connect(other).emergencyGetFromFarming(balance)).to.be.revertedWith("CanToken: permitted to admins only")
         expect(await lpToken.balanceOf(can.address)).to.eq(0)
@@ -197,5 +210,19 @@ describe("CanToken", () => {
         await can.transfer(other.address, tokenAmount1, earned)
         expect((await can.usersInfo(other.address)).aggregatedReward).to.eq(earned.mul(2))
         expect((await can.usersInfo(other.address)).providedAmount).to.eq(tokenAmount1)
+    })
+
+    it("setAdmins", async () => {
+        await can.setAdmins([alice.address, bob.address]);
+        expect(await can.lpAdmins(0)).to.eq(alice.address);
+        expect(await can.lpAdmins(1)).to.eq(bob.address);
+    })
+
+    it("removeAdmins", async () => {
+        await can.setAdmins([alice.address, bob.address, other.address]);
+        expect(await can.lpAdmins(0)).to.eq(alice.address);
+        await can.removeAdmins([alice.address, other.address]);
+        expect(await can.lpAdmins(0)).to.eq(bob.address);
+        await expect(can.lpAdmins(1)).to.be.reverted;
     })
 })
