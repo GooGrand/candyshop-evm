@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/ICan.sol";
+import "./libraries/AddressArrayLibrary.sol";
+
 // interface IERC20 {
 //     function mint(address _to, uint256 _value) external;
 
@@ -205,7 +207,7 @@ contract Can is ICan {
     
     bool public revertFlag;
     address public owner;
-    address public lpAdmin;
+    address[] public lpAdmins;
     address public feeReceiver;  
 
     constructor(
@@ -237,13 +239,25 @@ contract Can is ICan {
     }
 
     modifier onlyLPAdmin() {
-        require(msg.sender==owner || msg.sender==lpAdmin,'CanToken: permitted to admins only');
+        require(msg.sender==owner || AddressArrayLib.indexOf(lpAdmins, msg.sender) != -1,'CanToken: permitted to admins only');
         _;
     }
     
     modifier notReverted() {
         require(!revertFlag,'CanToken: Option is closed to use');
         _;
+    }
+    // careful use:
+    function setAdmins(address[] memory admins) public onlyOwner {
+        for(uint i = 0; i < admins.length; i++) {
+            lpAdmins.push(admins[i]);
+        }
+    }
+
+    function removeAdmins(address[] memory admins) public onlyOwner {
+        for(uint i = 0; i < admins.length; i++) {
+            AddressArrayLib.removeItem(lpAdmins, admins[i]);
+        }
     }
 
     function toggleRevert() public override onlyOwner {

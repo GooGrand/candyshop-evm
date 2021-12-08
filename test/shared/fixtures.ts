@@ -1,5 +1,5 @@
 import { ethers } from "hardhat"
-import { BigNumber } from "ethers"
+import { BigNumber, Contract } from "ethers"
 import { Fixture } from "ethereum-waffle"
 import { getFactory } from "./utils"
 
@@ -92,6 +92,7 @@ interface CandyShopFixture extends PoolFixture {
   relict: RelictGtonToken
   farm: BigBanger;
   candy: CandyShop
+  lib: Contract
 }
 
 export const candyShopFixture: Fixture<CandyShopFixture> = async function (
@@ -113,9 +114,15 @@ export const candyShopFixture: Fixture<CandyShopFixture> = async function (
     currentBlock + 10000
   )) as BigBanger
   await relict.transferOwnership(farm.address)
-  const candyFactory = await ethers.getContractFactory("CandyShop")
+  const libFactory = await ethers.getContractFactory("AddressArrayLib")
+  const lib = await libFactory.deploy();
+  const candyFactory = await ethers.getContractFactory("CandyShop", {
+    libraries: {
+      AddressArrayLib: lib.address,
+    }})
   const candy = (await candyFactory.deploy(wallet.address)) as CandyShop
   return {
+    lib,
     weth,
     token0,
     token1,
