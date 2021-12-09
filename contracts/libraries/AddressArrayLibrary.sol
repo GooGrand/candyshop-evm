@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
 
-import "hardhat/console.sol";
-
 library AddressArrayLib {
 
     function removeItem(
@@ -29,7 +27,6 @@ library AddressArrayLib {
         address[] storage array,
         address a
     ) public returns (int) {
-
         if (array.length == 0) return int(-1); // we want to continue txn process
         for(uint i=0; i<array.length; i++) {
             if (array[i] == a) {
